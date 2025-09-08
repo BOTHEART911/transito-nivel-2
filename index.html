@@ -478,28 +478,30 @@
           <div class="w-full mb-3">
             <div class="memoria-grid" id="memoria-grid">
               ${state.grid.map((cuadro,idx)=>{
-                let isSel = state.seleccionadas.includes(idx);
-                let isEncontrado = state.parejasEncontradas.includes(cuadro.id);
-                // PREVISUALIZANDO: mostrar solo las imágenes
-                if(state.previsualizando) {
-                  if(cuadro.tipo==="img") {
-                    return `<div class="cuadro-memoria" style="pointer-events:none"><img src="${cuadro.contenido}" class="marcas-img" alt="marca vial"></div>`;
-                  } else {
-                    return `<div class="cuadro-memoria" style="pointer-events:none"><img src="https://res.cloudinary.com/dqqeavica/image/upload/v1756743104/secretaria_de_Transito_nxsvyp.jpg" class="marcas-img" alt="respaldo"></div>`;
-                  }
-                }
-                // JUEGO NORMAL
-                return `
-                  <div class="cuadro-memoria ${isEncontrado?'encontrado':''} ${isSel?'seleccionado':''}" onclick="descubrirCuadro(${idx})" tabindex="0">
-                    ${
-                      isEncontrado || isSel
-                      ? (cuadro.tipo==="img"
-                          ? `<img src="${cuadro.contenido}" class="marcas-img" alt="marca vial">`
-                          : `<span class="marcas-txt">${cuadro.contenido}</span>`)
-                      : `<img src="https://res.cloudinary.com/dqqeavica/image/upload/v1756743104/secretaria_de_Transito_nxsvyp.jpg" class="marcas-img" alt="respaldo">`
-                    }
-                  </div>`;
-              }).join("")}
+  let isSel = state.seleccionadas.includes(idx);
+  let isEncontrado = state.parejasEncontradas.includes(cuadro.id);
+  // PREVISUALIZANDO: mostrar todas las cartas abiertas, sin poder seleccionar
+  if(state.previsualizando) {
+    return `<div class="cuadro-memoria" style="pointer-events:none">
+      ${
+        cuadro.tipo==="img"
+        ? `<img src="${cuadro.contenido}" class="marcas-img" alt="marca vial">`
+        : `<span class="marcas-txt">${cuadro.contenido}</span>`
+      }
+    </div>`;
+  }
+  // JUEGO NORMAL
+  return `
+    <div class="cuadro-memoria ${isEncontrado?'encontrado':''} ${isSel?'seleccionado':''}" onclick="descubrirCuadro(${idx})" tabindex="0">
+      ${
+        isEncontrado || isSel
+        ? (cuadro.tipo==="img"
+            ? `<img src="${cuadro.contenido}" class="marcas-img" alt="marca vial">`
+            : `<span class="marcas-txt">${cuadro.contenido}</span>`)
+        : `<img src="https://res.cloudinary.com/dqqeavica/image/upload/v1756743104/secretaria_de_Transito_nxsvyp.jpg" class="marcas-img" alt="respaldo">`
+      }
+    </div>`;
+}).join("")}
             </div>
           </div>
           <div class="flex justify-between w-full mt-2 mb-1 items-center">
