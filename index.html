@@ -129,10 +129,25 @@
       display: block;
       margin: 0 auto;
     }
+    .cuadro-memoria span.marcas-txt {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      width: 90%;
+      height: 90%;
+      font-size: 0.8rem;
+      font-weight: 500;
+      line-height: 1.2;
+      word-break: break-word;
+      overflow-wrap: break-word;
+      hyphens: auto;
+    }
     @media (max-width:600px) {
       .avatar-img { width: 48px; height: 68px; }
       .cuadro-memoria { min-width: 46px; min-height: 46px; font-size: 0.95rem;}
       .max-w-md, .max-w-lg { max-width: 95vw !important;}
+      .cuadro-memoria span.marcas-txt { font-size: 0.83rem; }
     }
     @media (max-width:480px) {
       .rounded-3xl, .modal-juego {
@@ -175,27 +190,6 @@
         gap: 0.6em;
       }
     }
-
-    .cuadro-memoria span.marcas-txt {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  width: 90%;
-  height: 90%;
-  font-size: 0.8rem;
-  font-weight: 500;
-  line-height: 1.2;
-  word-break: break-word;
-  overflow-wrap: break-word;
-  hyphens: auto;
-}
-
-@media (max-width:600px) {
-  .cuadro-memoria span.marcas-txt {
-    font-size: 0.83rem;
-  }
-}
   </style>
 </head>
 <body class="min-h-screen flex flex-col items-center justify-center bg-gradient-to-bl from-blue-100 to-yellow-100">
@@ -208,12 +202,12 @@
   <audio id="audio-bien" src="https://res.cloudinary.com/dqqeavica/video/upload/v1756844320/correcto_svttl1.mp3" preload="auto"></audio>
   <audio id="audio-mal" src="https://res.cloudinary.com/dqqeavica/video/upload/v1756844319/incorrecto_h5vgbl.mp3" preload="auto"></audio>
   <audio id="audio-fin" src="https://res.cloudinary.com/dqqeavica/video/upload/v1756844514/final_ein36c.mp3" preload="auto"></audio>
-  <!-- Fiesta/aprobado -->
   <audio id="audio-fiesta" src="https://res.cloudinary.com/dqqeavica/video/upload/v1756844514/ganar_tfdnmh.mp3" preload="auto"></audio>
 
   <script>
     // --- CONSTANTES ---
     const TIEMPO_JUEGO = 120; // Segundos para ganar (2 minutos, modificar aquí)
+    const PREVIEW_TIME = 30; // Segundos de previsualización de imágenes al iniciar
     const CODIGO_PREMIO = "STT1011";
     const FELICITACION = "Haz completado el segundo nivel, eres un héroe vial";
 
@@ -307,6 +301,8 @@
       intentos: 0,
       startTimestamp: null,
       winTimestamp: null,
+      previsualizando: false,
+      previewTimeLeft: PREVIEW_TIME,
     };
 
     // --- UTILS ---
@@ -403,16 +399,33 @@
       state.seleccionadas = [];
       state.tareasPendientes = [];
       state.winTimestamp = null;
-      // Crear el grid de 20 cuadros (10 img + 10 texto), mezclar!
+      state.previewTimeLeft = PREVIEW_TIME;
+      state.previsualizando = true;
       let grid = [];
       PAREJAS.forEach((p,idx)=>{
         grid.push({ tipo:"img", id:p.id, contenido:p.img, encontrado:false });
         grid.push({ tipo:"txt", id:p.id, contenido:p.text, encontrado:false });
       });
       state.grid = shuffle(grid);
-      state.startTimestamp = Date.now();
+      state.startTimestamp = null;
       renderMemoria();
-      startTimer();
+      startPreviewTimer();
+    }
+
+    function startPreviewTimer() {
+      clearInterval(state.timer);
+      state.timer = setInterval(()=>{
+        state.previewTimeLeft--;
+        renderMemoria();
+        if(state.previewTimeLeft<=0){
+          clearInterval(state.timer);
+          state.previsualizando = false;
+          state.startTimestamp = Date.now();
+          renderMemoria();
+          startTimer();
+        }
+      },1000);
+      playSound("audio-tictac");
     }
 
     function startTimer() {
@@ -442,7 +455,6 @@
     function renderMemoria() {
       if (state.salir) return;
       state.screen = "juego";
-      // Responsive grid, cuadros (img/txt), mostrar respaldo si no seleccionado ni encontrado
       appHtml(`
         <div class="rounded-3xl shadow-2xl p-4 sm:p-7 flex flex-col items-center w-full stage-bg animate-fadeIn min-h-[540px] relative" id="modal-memoria">
           <div class="flex flex-row w-full justify-between items-start mb-2 relative">
@@ -455,24 +467,39 @@
           </div>
           <div class="w-full flex flex-col items-center -mt-2 mb-1">
             <span class="font-bold text-xl text-slate-800 nivel-txt mb-1">Nivel 2 - Marcas Viales</span>
-            <div class="pregunta-txt text-center mb-2">Haz clic en los cuadros para descubrir las parejas.<br>¡Encuentra las 10 parejas en menos de <b>2 minutos</b>!</div>
+            <div class="pregunta-txt text-center mb-2">
+              ${
+                state.previsualizando
+                ? 'Memoriza las imágenes de las marcas viales.<br>El juego comenzará en <span id="preview-timer">'+state.previewTimeLeft+'</span> segundos.'
+                : 'Haz clic en los cuadros para descubrir las parejas.<br>¡Encuentra las 10 parejas en menos de <b>2 minutos</b>!'
+              }
+            </div>
           </div>
           <div class="w-full mb-3">
             <div class="memoria-grid" id="memoria-grid">
               ${state.grid.map((cuadro,idx)=>{
-  let isSel = state.seleccionadas.includes(idx);
-  let isEncontrado = state.parejasEncontradas.includes(cuadro.id);
-  return `
-    <div class="cuadro-memoria ${isEncontrado?'encontrado':''} ${isSel?'seleccionado':''}" onclick="descubrirCuadro(${idx})" tabindex="0">
-      ${
-        isEncontrado || isSel
-        ? (cuadro.tipo==="img"
-            ? `<img src="${cuadro.contenido}" class="marcas-img" alt="marca vial">`
-            : `<span class="marcas-txt">${cuadro.contenido}</span>`)
-        : `<img src="https://res.cloudinary.com/dqqeavica/image/upload/v1756743104/secretaria_de_Transito_nxsvyp.jpg" class="marcas-img" alt="respaldo">`
-      }
-    </div>`;
-}).join("")}
+                let isSel = state.seleccionadas.includes(idx);
+                let isEncontrado = state.parejasEncontradas.includes(cuadro.id);
+                // PREVISUALIZANDO: mostrar solo las imágenes
+                if(state.previsualizando) {
+                  if(cuadro.tipo==="img") {
+                    return `<div class="cuadro-memoria" style="pointer-events:none"><img src="${cuadro.contenido}" class="marcas-img" alt="marca vial"></div>`;
+                  } else {
+                    return `<div class="cuadro-memoria" style="pointer-events:none"><img src="https://res.cloudinary.com/dqqeavica/image/upload/v1756743104/secretaria_de_Transito_nxsvyp.jpg" class="marcas-img" alt="respaldo"></div>`;
+                  }
+                }
+                // JUEGO NORMAL
+                return `
+                  <div class="cuadro-memoria ${isEncontrado?'encontrado':''} ${isSel?'seleccionado':''}" onclick="descubrirCuadro(${idx})" tabindex="0">
+                    ${
+                      isEncontrado || isSel
+                      ? (cuadro.tipo==="img"
+                          ? `<img src="${cuadro.contenido}" class="marcas-img" alt="marca vial">`
+                          : `<span class="marcas-txt">${cuadro.contenido}</span>`)
+                      : `<img src="https://res.cloudinary.com/dqqeavica/image/upload/v1756743104/secretaria_de_Transito_nxsvyp.jpg" class="marcas-img" alt="respaldo">`
+                    }
+                  </div>`;
+              }).join("")}
             </div>
           </div>
           <div class="flex justify-between w-full mt-2 mb-1 items-center">
@@ -481,7 +508,11 @@
           </div>
           <div class="flex justify-between w-full mb-2">
             <span class="text-green-700 font-bold">Intentos: ${state.intentos}</span>
-            <span class="text-pink-600 font-bold"><span>⏰</span> <span id="cronometro-ui">${state.timeLeft}</span>s</span>
+            ${
+              state.previsualizando
+              ? `<span class="text-pink-600 font-bold"><span>⏰</span> <span id="preview-timer2">${state.previewTimeLeft}</span>s</span>`
+              : `<span class="text-pink-600 font-bold"><span>⏰</span> <span id="cronometro-ui">${state.timeLeft}</span>s</span>`
+            }
           </div>
         </div>
       `);
@@ -491,6 +522,7 @@
 
     function descubrirCuadro(idx) {
       if (state.salir) return;
+      if (state.previsualizando) return;
       if (state.seleccionadas.length === 2) return;
       if (state.seleccionadas.includes(idx)) return;
       const cuadro = state.grid[idx];
