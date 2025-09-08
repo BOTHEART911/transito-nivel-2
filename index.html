@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Reconoce las Marcas Viales</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Favicon -->
+  <link rel="icon" href="https://res.cloudinary.com/dqqeavica/image/upload/v1756743104/Logo_rkja6o.png" type="image/png">
+  <!-- TailwindCSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .game-btn:active { transform: scale(0.98);}
+    .stage-bg { background: linear-gradient(135deg, #dbeafe 60%, #fef08a 100%);}
+    .shake { animation: shake 0.4s;}
+    @keyframes shake {
+      0% { transform: translateX(0);}
+      20% { transform: translateX(-8px);}
+      40% { transform: translateX(8px);}
+      60% { transform: translateX(-4px);}
+      80% { transform: translateX(4px);}
+      100% { transform: translateX(0);}
+    }
+    .tránsito-entity-img {
+      width: 60px;
+      max-width: 22vw;
+      margin-bottom: 0.5rem;
+      border-radius: 1rem;
+      box-shadow: 0 4px 24px #0001;
+      display: block;
+    }
+    .avatar-img {
+      width: 70px;
+      height: 95px;
+      object-fit: contain;
+      border-radius: 16px;
+      background: #fff;
+      box-shadow: 0 2px 12px #0002;
+      border: 2px solid #e0e7ff;
+      margin: 0 auto;
+      transition: box-shadow 0.2s, border 0.2s;
+    }
+    .avatar-img.selected {
+      box-shadow: 0 0 0 4px #fde047;
+      border-color: #f59e42;
+    }
+    .volver-btn {
+      position: absolute;
+      top: 10px;
+      left: 12px;
+      z-index: 40;
+    }
+    .confetti {
+      position: fixed;
+      top: 0; left: 0; width: 100vw; height: 100vh; pointer-events: none;
+      z-index: 100;
+      overflow: hidden;
+    }
+    .confetti-piece {
+      position: absolute;
+      width: 14px; height: 14px;
+      border-radius: 3px;
+      opacity: 0.85;
+      animation: confetti-fall 1.8s cubic-bezier(.62,.02,.37,.99) forwards;
+    }
+    @keyframes confetti-fall {
+      0% { transform: translateY(-20px) rotate(0deg); opacity: 1;}
+      80% { opacity: 1;}
+      100% { transform: translateY(90vh) rotate(360deg); opacity: 0;}
+    }
+    .aprobado-txt {
+      font-size: 2.2rem;
+      font-weight: bold;
+      color: #10b981;
+      background: linear-gradient(90deg,#fef08a 20%,#a7f3d0 80%);
+      padding: 0.35em 1em;
+      border-radius: 2em;
+      box-shadow: 0 4px 24px #eab30833;
+      margin-bottom: 1em;
+      animation: aprobadoPulse 1.1s infinite alternate;
+    }
+    @keyframes aprobadoPulse {
+      0% { transform: scale(1);}
+      100% { transform: scale(1.08);}
+    }
+    .codigo-premio {
+      font-size: 1.5rem;
+      background: #fbbf24;
+      color: #fff;
+      padding: 0.3em 1em;
+      border-radius: 1.2em;
+      font-weight: bold;
+      box-shadow: 0 2px 8px #f59e4233;
+      letter-spacing: 2px;
+      margin-bottom: 1em;
+    }
+    .cuadro-memoria {
+      aspect-ratio: 1/1;
+      background: #fff;
+      border-radius: 1.1em;
+      box-shadow: 0 2px 12px #0002;
+      cursor: pointer;
+      border: 3px solid #e0e7ff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+      font-weight: 500;
+      min-width: 70px;
+      min-height: 70px;
+      transition: border 0.2s, box-shadow 0.2s;
+      position: relative;
+      overflow: hidden;
+    }
+    .cuadro-memoria.encontrado {
+      border-color: #22c55e !important;
+      box-shadow: 0 0 0 4px #bbf7d0 !important;
+      cursor: default;
+      opacity: 1;
+    }
+    .cuadro-memoria.seleccionado {
+      border-color: #fbbf24 !important;
+      box-shadow: 0 0 0 4px #fde047 !important;
+    }
+    .cuadro-memoria img.marcas-img {
+      width: 80%;
+      height: auto;
+      border-radius: 0.7em;
+      object-fit: contain;
+      display: block;
+      margin: 0 auto;
+    }
+    @media (max-width:600px) {
+      .avatar-img { width: 48px; height: 68px; }
+      .cuadro-memoria { min-width: 46px; min-height: 46px; font-size: 0.95rem;}
+      .max-w-md, .max-w-lg { max-width: 95vw !important;}
+    }
+    @media (max-width:480px) {
+      .rounded-3xl, .modal-juego {
+        border-radius: 1em !important;
+        padding: 0.5em 0.3em !important;
+        min-height: unset !important;
+      }
+      .pregunta-txt, .nivel-txt, .text-lg, .text-xl, .font-bold {
+        font-size: 1rem !important;
+        line-height: 1.2 !important;
+      }
+      .game-btn, .opcion-btn {
+        padding: 0.7em 0.4em !important;
+        font-size: 1rem !important;
+      }
+      .max-w-md, .max-w-lg { max-width: 98vw !important; }
+    }
+    .memoria-grid {
+      display: grid;
+      gap: 1em;
+      width: 100%;
+      margin: 0 auto;
+    }
+    @media (min-width: 601px) {
+      .memoria-grid {
+        grid-template-columns: repeat(5, 1fr);
+        grid-template-rows: repeat(4, 1fr);
+        max-width: 650px;
+      }
+    }
+    @media (max-width:600px) {
+      .memoria-grid {
+        grid-template-columns: repeat(2, 1fr);
+        grid-template-rows: repeat(10, 1fr);
+        max-width: 99vw;
+      }
+    }
+    @media (max-width:400px) {
+      .memoria-grid {
+        gap: 0.6em;
+      }
+    }
+
+    .cuadro-memoria span.marcas-txt {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  width: 90%;
+  height: 90%;
+  font-size: 0.8rem;
+  font-weight: 500;
+  line-height: 1.2;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
+}
+
+@media (max-width:600px) {
+  .cuadro-memoria span.marcas-txt {
+    font-size: 0.83rem;
+  }
+}
+  </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-center bg-gradient-to-bl from-blue-100 to-yellow-100">
+  <div id="app" class="w-full max-w-2xl mx-auto mt-4 relative"></div>
+  <div id="confetti"></div>
+
+  <!-- SONIDOS NUEVOS -->
+  <audio id="audio-inicio" src="https://res.cloudinary.com/dqqeavica/video/upload/v1756841760/intro_b1nuvu.mp3" preload="auto"></audio>
+  <audio id="audio-tictac" src="https://res.cloudinary.com/dqqeavica/video/upload/v1756843183/tictoc_j7oje6.mp3" preload="auto"></audio>
+  <audio id="audio-bien" src="https://res.cloudinary.com/dqqeavica/video/upload/v1756844320/correcto_svttl1.mp3" preload="auto"></audio>
+  <audio id="audio-mal" src="https://res.cloudinary.com/dqqeavica/video/upload/v1756844319/incorrecto_h5vgbl.mp3" preload="auto"></audio>
+  <audio id="audio-fin" src="https://res.cloudinary.com/dqqeavica/video/upload/v1756844514/final_ein36c.mp3" preload="auto"></audio>
+  <!-- Fiesta/aprobado -->
+  <audio id="audio-fiesta" src="https://res.cloudinary.com/dqqeavica/video/upload/v1756844514/ganar_tfdnmh.mp3" preload="auto"></audio>
+
+  <script>
+    // --- CONSTANTES ---
+    const TIEMPO_JUEGO = 120; // Segundos para ganar (2 minutos, modificar aquí)
+    const CODIGO_PREMIO = "STT1011";
+    const FELICITACION = "Haz completado el segundo nivel, eres un héroe vial";
+
+    // Avatares
+    const AVATARS = [
+      "https://res.cloudinary.com/dqqeavica/image/upload/v1756828158/avatar_1_gjnwup.png",
+      "https://res.cloudinary.com/dqqeavica/image/upload/v1756828158/avatar_2_om3ufg.png",
+      "https://res.cloudinary.com/dqqeavica/image/upload/v1756828158/avatar_3_dswwyx.png",
+      "https://res.cloudinary.com/dqqeavica/image/upload/v1756828158/avatar_4_rhcecg.png",
+      "https://res.cloudinary.com/dqqeavica/image/upload/v1756828159/avatar_5_yx0wam.png",
+      "https://res.cloudinary.com/dqqeavica/image/upload/v1756828159/avatar_6_gdxczb.png"
+    ];
+
+    // Marcas viales: imagen + texto + tarea
+    const PAREJAS = [
+      {
+        id: 1,
+        img: "https://res.cloudinary.com/dqqeavica/image/upload/v1757341350/sencilla_continua_fpzfow.jpg",
+        text: "Sencilla y continua. No se puede adelantar.",
+        tarea: "Ve con tus padres y señala una línea amarilla sencilla y continua, explícale por qué no se puede adelantar.",
+      },
+      {
+        id: 2,
+        img: "https://res.cloudinary.com/dqqeavica/image/upload/v1757341351/doble_continua_mqo3g3.jpg",
+        text: "Doble y continua. En ningún sentido se puede adelantar.",
+        tarea: "Pregunta a tus padres si conocen una vía con doble línea continua y comenta su importancia.",
+      },
+      {
+        id: 3,
+        img: "https://res.cloudinary.com/dqqeavica/image/upload/v1757341351/doble_trazos_qbrfvs.jpg",
+        text: "Doble y a trazos. En ambos sentidos se puede adelantar.",
+        tarea: "Dibuja una doble línea a trazos y explica a tu familia cómo funciona.",
+      },
+      {
+        id: 4,
+        img: "https://res.cloudinary.com/dqqeavica/image/upload/v1757341351/sencilla_trazos_glysna.jpg",
+        text: "Sencilla y a trazos. Se puede adelantar.",
+        tarea: "Observa una línea sencilla a trazos y di por qué permite adelantar.",
+      },
+      {
+        id: 5,
+        img: "https://res.cloudinary.com/dqqeavica/image/upload/v1757341351/doble_combinada_lk9e5f.jpg",
+        text: "Doble y combinada. Adelanta quien va al lado de las líneas de trazos.",
+        tarea: "Busca una doble línea combinada y explica a tus padres quién puede adelantar.",
+      },
+      {
+        id: 6,
+        img: "https://res.cloudinary.com/dqqeavica/image/upload/v1757341351/borde_pbtxx9.jpg",
+        text: "De borde. Separa la calzada de la berma.",
+        tarea: "Identifica una línea de borde y explica su función.",
+      },
+      {
+        id: 7,
+        img: "https://res.cloudinary.com/dqqeavica/image/upload/v1757341350/carril_l8zhxc.jpg",
+        text: "De carril. Separa cada fila de vehículos.",
+        tarea: "Dibuja líneas de carril y comenta su utilidad.",
+      },
+      {
+        id: 8,
+        img: "https://res.cloudinary.com/dqqeavica/image/upload/v1757341350/flechas_s0xxki.jpg",
+        text: "Flechas. Muestran la dirección que se debe seguir.",
+        tarea: "Observa las flechas en la vía y di por qué son importantes.",
+      },
+      {
+        id: 9,
+        img: "https://res.cloudinary.com/dqqeavica/image/upload/v1757341350/paso_nivel_avi0jk.jpg",
+        text: "Paso a nivel. Indica el cruce con el ferrocarril.",
+        tarea: "Explica a tus padres qué significa paso a nivel y por qué se debe tener cuidado.",
+      },
+      {
+        id: 10,
+        img: "https://res.cloudinary.com/dqqeavica/image/upload/v1757341350/peatonal_brlu0j.jpg",
+        text: "Cebra o zona peatonal. Define el cruce de peatones, línea de pare.",
+        tarea: "Cruza una cebra peatonal con tu familia y explica su importancia.",
+      }
+    ];
+
+    // --- ESTADO DEL JUEGO ---
+    let state = {
+      screen: "inicio",
+      playerName: "",
+      avatarIndex: 0,
+      sonido: true,
+      salir: false,
+      timer: null,
+      timeLeft: TIEMPO_JUEGO,
+      grid: [],
+      seleccionadas: [],
+      parejasEncontradas: [],
+      tareasPendientes: [],
+      intentos: 0,
+      startTimestamp: null,
+      winTimestamp: null,
+    };
+
+    // --- UTILS ---
+    function $(sel) { return document.querySelector(sel);}
+    function appHtml(html) { $("#app").innerHTML = html; }
+    function shuffle(arr) {
+      let a = arr.slice();
+      for (let i = a.length - 1; i > 0; i--) {
+        let j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+      }
+      return a;
+    }
+    function playSound(id) {
+      if (!state.sonido) return;
+      const audio = document.getElementById(id);
+      if (audio) { audio.currentTime=0; audio.play(); }
+    }
+    function stopSound(id) {
+      const audio = document.getElementById(id);
+      if (audio) { audio.pause(); audio.currentTime=0; }
+    }
+    function lanzarConfetti() {
+      const colors = ["#fde047","#fbbf24","#10b981","#38bdf8","#f472b6","#6366f1","#f43f5e"];
+      const confettiContainer = document.getElementById('confetti');
+      confettiContainer.innerHTML = '';
+      confettiContainer.className = 'confetti';
+      for(let i=0; i<70; i++){
+        const div = document.createElement('div');
+        div.className = 'confetti-piece';
+        div.style.background = colors[Math.floor(Math.random()*colors.length)];
+        div.style.left = Math.random()*99+'vw';
+        div.style.top = (Math.random()*10)+'vh';
+        div.style.transform = `rotate(${Math.random()*360}deg)`;
+        div.style.animationDelay = (Math.random()*0.7)+'s';
+        confettiContainer.appendChild(div);
+      }
+      setTimeout(()=>{ confettiContainer.innerHTML=''; }, 1900);
+      playSound("audio-fiesta");
+    }
+
+    // --- renderInicio EXACTAMENTE IGUAL ---
+    function renderInicio() {
+      stopSound("audio-tictac");
+      clearInterval(state.timer);
+      state.timer = null;
+      state.salir = false;
+      appHtml(`
+        <div class="bg-white rounded-3xl shadow-2xl p-8 flex flex-col items-center animate-fadeIn">
+          <img src="https://res.cloudinary.com/dqqeavica/image/upload/v1756743104/secretaria_de_Transito_nxsvyp.jpg" alt="Secretaría de Tránsito" class="tránsito-entity-img mb-3" style="margin-bottom: 0.7em;">
+          <h1 class="text-4xl font-bold mb-3 text-yellow-600 text-center">Reconoce las Marcas Viales</h1>
+          <div class="mb-4 text-lg text-gray-700 text-center">¡Descubre las parejas para convertirte en un <span class="font-semibold text-blue-500">héroe vial</span>!<br>Segundo nivel de la Secretaría de Tránsito del Tolima.</div>
+          <div class="flex flex-col items-center mb-3">
+            <label class="mb-1 text-gray-600 font-medium">Nombre:</label>
+            <input type="text" id="nombre" class="rounded-lg border-2 border-blue-200 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 transition w-56 mb-2 text-center" maxlength="12" placeholder="Escribe tu nombre" value="${state.playerName}">
+            <label class="mb-2 text-gray-600 font-medium">Elige tu avatar:</label>
+            <div class="flex flex-row flex-wrap gap-3 justify-center items-center mb-2">
+              ${AVATARS.map((url,i)=>`
+                <img src="${url}" class="avatar-img${state.avatarIndex===i?' selected':''}" onclick="setAvatar(${i})" alt="avatar ${i+1}">
+              `).join("")}
+            </div>
+          </div>
+          <div class="mb-4 flex items-center justify-center gap-2">
+            <button onclick="toggleSonido()" class="text-lg px-3 py-1 rounded-xl bg-yellow-200 hover:bg-yellow-300 font-bold">
+              ${state.sonido ? "🔊 Sonido ON" : "🔇 Sonido OFF"}
+            </button>
+          </div>
+          <button onclick="startGame()" class="game-btn bg-yellow-400 hover:bg-yellow-500 text-white font-bold px-8 py-3 rounded-xl shadow-xl text-2xl mt-2">¡Jugar!</button>
+          <div class="mt-4 text-sm text-gray-400">Copyright © Oscar Polania - Sec. Tránsito del Tolima</div>
+        </div>
+      `);
+      playSound("audio-inicio");
+      window.setAvatar = (i)=>{state.avatarIndex=i; renderInicio();}
+      window.toggleSonido = ()=>{state.sonido=!state.sonido; renderInicio();}
+    }
+
+    // --- MEMORIA LOGIC ---
+    function startGame() {
+      let nombre = state.playerName;
+      if (state.screen === "inicio") {
+        nombre = $("#nombre").value.trim();
+        if (nombre.length < 2) {
+          $("#nombre").classList.add('shake');
+          setTimeout(()=>$("#nombre").classList.remove('shake'), 400);
+          return;
+        }
+      }
+      state.playerName = nombre;
+      state.screen = "juego";
+      state.salir = false;
+      state.timeLeft = TIEMPO_JUEGO;
+      state.intentos = 0;
+      state.parejasEncontradas = [];
+      state.seleccionadas = [];
+      state.tareasPendientes = [];
+      state.winTimestamp = null;
+      // Crear el grid de 20 cuadros (10 img + 10 texto), mezclar!
+      let grid = [];
+      PAREJAS.forEach((p,idx)=>{
+        grid.push({ tipo:"img", id:p.id, contenido:p.img, encontrado:false });
+        grid.push({ tipo:"txt", id:p.id, contenido:p.text, encontrado:false });
+      });
+      state.grid = shuffle(grid);
+      state.startTimestamp = Date.now();
+      renderMemoria();
+      startTimer();
+    }
+
+    function startTimer() {
+      clearInterval(state.timer);
+      state.timer = setInterval(()=>{
+        if(state.salir) {
+          clearInterval(state.timer);
+          return;
+        }
+        state.timeLeft--;
+        renderMemoriaUI();
+        if(state.timeLeft<=0){
+          clearInterval(state.timer);
+          if (!state.winTimestamp && !state.salir) {
+            playSound("audio-fin");
+            setTimeout(renderFin, 700);
+          }
+        }
+      },1000);
+      playSound("audio-tictac");
+    }
+
+    function renderMemoriaUI() {
+      if ($("#cronometro-ui")) $("#cronometro-ui").textContent = state.timeLeft;
+    }
+
+    function renderMemoria() {
+      if (state.salir) return;
+      state.screen = "juego";
+      // Responsive grid, cuadros (img/txt), mostrar respaldo si no seleccionado ni encontrado
+      appHtml(`
+        <div class="rounded-3xl shadow-2xl p-4 sm:p-7 flex flex-col items-center w-full stage-bg animate-fadeIn min-h-[540px] relative" id="modal-memoria">
+          <div class="flex flex-row w-full justify-between items-start mb-2 relative">
+            <div class="flex flex-col items-center" style="min-width:85px;">
+              <button onclick="salirAJugar()" class="btn-salir mb-2" style="align-self: flex-start;">❌ Salir</button>
+              <img src="${AVATARS[state.avatarIndex]}" class="avatar-img mb-1" alt="Avatar">
+              <span class="text-blue-700 font-bold text-lg mt-1">${state.playerName}</span>
+            </div>
+            <img src="https://res.cloudinary.com/dqqeavica/image/upload/v1756743104/secretaria_de_Transito_nxsvyp.jpg" class="tránsito-entity-img ml-3 mt-2" alt="Secretaría de Tránsito">
+          </div>
+          <div class="w-full flex flex-col items-center -mt-2 mb-1">
+            <span class="font-bold text-xl text-slate-800 nivel-txt mb-1">Nivel 2 - Marcas Viales</span>
+            <div class="pregunta-txt text-center mb-2">Haz clic en los cuadros para descubrir las parejas.<br>¡Encuentra las 10 parejas en menos de <b>2 minutos</b>!</div>
+          </div>
+          <div class="w-full mb-3">
+            <div class="memoria-grid" id="memoria-grid">
+              ${state.grid.map((cuadro,idx)=>{
+  let isSel = state.seleccionadas.includes(idx);
+  let isEncontrado = state.parejasEncontradas.includes(cuadro.id);
+  return `
+    <div class="cuadro-memoria ${isEncontrado?'encontrado':''} ${isSel?'seleccionado':''}" onclick="descubrirCuadro(${idx})" tabindex="0">
+      ${
+        isEncontrado || isSel
+        ? (cuadro.tipo==="img"
+            ? `<img src="${cuadro.contenido}" class="marcas-img" alt="marca vial">`
+            : `<span class="marcas-txt">${cuadro.contenido}</span>`)
+        : `<img src="https://res.cloudinary.com/dqqeavica/image/upload/v1756743104/secretaria_de_Transito_nxsvyp.jpg" class="marcas-img" alt="respaldo">`
+      }
+    </div>`;
+}).join("")}
+            </div>
+          </div>
+          <div class="flex justify-between w-full mt-2 mb-1 items-center">
+            <span class="text-md font-bold text-blue-700">${state.playerName}</span>
+            <span class="text-md font-bold text-yellow-700">Parejas encontradas: ${state.parejasEncontradas.length} / 10</span>
+          </div>
+          <div class="flex justify-between w-full mb-2">
+            <span class="text-green-700 font-bold">Intentos: ${state.intentos}</span>
+            <span class="text-pink-600 font-bold"><span>⏰</span> <span id="cronometro-ui">${state.timeLeft}</span>s</span>
+          </div>
+        </div>
+      `);
+      window.descubrirCuadro = descubrirCuadro;
+      window.salirAJugar = salirAJugar;
+    }
+
+    function descubrirCuadro(idx) {
+      if (state.salir) return;
+      if (state.seleccionadas.length === 2) return;
+      if (state.seleccionadas.includes(idx)) return;
+      const cuadro = state.grid[idx];
+      if (state.parejasEncontradas.includes(cuadro.id)) return;
+      state.seleccionadas.push(idx);
+      renderMemoria();
+      if(state.seleccionadas.length === 2) {
+        setTimeout(checkPareja, 700);
+      }
+    }
+
+    function checkPareja() {
+      const [i1, i2] = state.seleccionadas;
+      if (i1 === undefined || i2 === undefined) return;
+      const c1 = state.grid[i1], c2 = state.grid[i2];
+      state.intentos++;
+      if(c1.id === c2.id && c1.tipo !== c2.tipo) {
+        // Es pareja!!
+        state.parejasEncontradas.push(c1.id);
+        playSound("audio-bien");
+        // Anotar tarea si no está repetida
+        const tareaIdx = PAREJAS.findIndex(p=>p.id===c1.id);
+        if (tareaIdx >= 0 && !state.tareasPendientes.includes(PAREJAS[tareaIdx].tarea)) {
+          state.tareasPendientes.push(PAREJAS[tareaIdx].tarea);
+        }
+        // ¿Ganó?
+        if(state.parejasEncontradas.length===10) {
+          state.winTimestamp = Date.now();
+          clearInterval(state.timer);
+          setTimeout(()=>{ playSound("audio-fin"); renderFin(); }, 800);
+          setTimeout(lanzarConfetti, 1200);
+        } else {
+          state.seleccionadas = [];
+          renderMemoria();
+        }
+      } else {
+        // No es pareja
+        playSound("audio-mal");
+        setTimeout(()=>{
+          state.seleccionadas = [];
+          renderMemoria();
+        }, 800);
+      }
+    }
+
+    function salirAJugar() {
+      state.salir = true;
+      renderInicio();
+    }
+
+    // --- FIN DEL JUEGO ---
+    function renderFin() {
+      stopSound("audio-tictac");
+      clearInterval(state.timer);
+      state.screen = "fin";
+      // ¿Ganó dentro del tiempo?
+      const tiempoUsado = state.winTimestamp ? Math.round((state.winTimestamp-state.startTimestamp)/1000) : TIEMPO_JUEGO;
+      const aprobado = state.parejasEncontradas.length===10 && tiempoUsado <= TIEMPO_JUEGO;
+      if(aprobado) setTimeout(lanzarConfetti, 100);
+      appHtml(`
+        <div class="bg-white rounded-3xl shadow-2xl p-8 flex flex-col items-center animate-fadeIn relative">
+          <img src="https://res.cloudinary.com/dqqeavica/image/upload/v1756743104/secretaria_de_Transito_nxsvyp.jpg" alt="Secretaría de Tránsito" class="tránsito-entity-img mb-3" style="margin-bottom: 0.7em;">
+          <img src="${AVATARS[state.avatarIndex]}" class="avatar-img" alt="Avatar" style="margin-bottom:0.5em">
+          <h2 class="text-3xl font-bold text-yellow-700 mb-2">${aprobado?FELICITACION:"¡Inténtalo de nuevo!"}</h2>
+          <div class="text-lg font-medium text-blue-600 mb-2">Terminaste el nivel de marcas viales.</div>
+          <div class="mb-2 text-xl font-bold text-yellow-500">Tiempo: <span class="text-blue-900">${tiempoUsado}s</span> / 120s</div>
+          <div class="mb-2 text-xl font-bold text-green-600">Parejas encontradas: ${state.parejasEncontradas.length} / 10</div>
+          ${ 
+            aprobado 
+            ? `<div class="aprobado-txt">¡Haz superado este reto! 🎉</div>
+                <div class="codigo-premio">Tu código de ganador: <span>${CODIGO_PREMIO}</span></div>
+                <div class="text-green-600 font-bold text-lg mb-2 animate-bounce">¡Eres un Héroe Vial!</div>`
+            : `<div class="text-pink-700 font-bold text-lg mb-2 animate-pulse">
+                  ¡Sigue intentando hasta lograrlo!
+               </div>`
+          }
+          <div class="mb-4">
+            <button onclick="verTareas()" class="game-btn bg-green-400 hover:bg-green-500 text-white px-6 py-2 rounded-lg font-bold mt-1">Ver tareas para casa</button>
+          </div>
+          <div class="mt-2 flex flex-col gap-2">
+            <button onclick="renderInicio()" class="game-btn px-4 py-2 bg-blue-200 hover:bg-blue-400 text-blue-900 rounded-lg font-bold">Volver al inicio</button>
+            <button onclick="jugarDeNuevo()" class="game-btn px-4 py-2 bg-yellow-300 hover:bg-yellow-400 text-yellow-900 rounded-lg font-bold">Jugar de nuevo</button>
+          </div>
+          <div class="mt-4 text-gray-400 text-xs">Actividad pedagógica Secretaría de Tránsito Departamental</div>
+        </div>
+      `);
+      window.verTareas = renderTareas;
+      window.jugarDeNuevo = jugarDeNuevo;
+    }
+
+    function jugarDeNuevo() {
+      state.salir = false;
+      state.screen = "juego";
+      startGame();
+    }
+
+    function verTareas() {
+      appHtml(`
+        <div class="bg-white rounded-3xl shadow-2xl p-8 flex flex-col items-center animate-fadeIn">
+          <img src="https://res.cloudinary.com/dqqeavica/image/upload/v1756743104/secretaria_de_Transito_nxsvyp.jpg" alt="Secretaría de Tránsito" class="tránsito-entity-img mb-3" style="margin-bottom: 0.7em;">
+          <img src="${AVATARS[state.avatarIndex]}" class="avatar-img" alt="Avatar" style="margin-bottom:0.5em">
+          <h2 class="text-2xl font-bold text-green-700 mb-3">Tareas para hacer en casa</h2>
+          <ul class="mb-4 w-full max-w-lg text-base list-disc list-inside text-gray-700">
+            ${state.tareasPendientes.length === 0 ? 
+              `<li>¡No hay tareas pendientes! Juega otra vez para conseguir nuevas tareas.</li>`
+              : state.tareasPendientes.map(t=>`<li class="mb-2">${t}</li>`).join("")}
+          </ul>
+          <div class="mb-2">
+            <button onclick="renderFin()" class="game-btn bg-yellow-300 hover:bg-yellow-500 text-white px-5 py-2 rounded font-bold">Volver</button>
+          </div>
+          <div class="text-gray-400 text-xs">Actividad pedagógica Secretaría de Tránsito Departamental</div>
+        </div>
+      `);
+    }
+
+    // Lanzar el inicio al cargar
+    renderInicio();
+  </script>
+</body>
+</html>
