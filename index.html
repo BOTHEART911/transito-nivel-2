@@ -8,6 +8,8 @@
   <link rel="icon" href="https://res.cloudinary.com/dqqeavica/image/upload/v1756743104/Logo_rkja6o.png" type="image/png">
   <!-- TailwindCSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <!-- SweetAlert CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <style>
     .game-btn:active { transform: scale(0.98);}
     .stage-bg { background: linear-gradient(135deg, #dbeafe 60%, #fef08a 100%);}
@@ -103,8 +105,6 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 1rem;
-      font-weight: 500;
       min-width: 70px;
       min-height: 70px;
       transition: border 0.2s, box-shadow 0.2s;
@@ -129,25 +129,10 @@
       display: block;
       margin: 0 auto;
     }
-    .cuadro-memoria span.marcas-txt {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      text-align: center;
-      width: 90%;
-      height: 90%;
-      font-size: 0.8rem;
-      font-weight: 500;
-      line-height: 1.2;
-      word-break: break-word;
-      overflow-wrap: break-word;
-      hyphens: auto;
-    }
     @media (max-width:600px) {
       .avatar-img { width: 48px; height: 68px; }
       .cuadro-memoria { min-width: 46px; min-height: 46px; font-size: 0.95rem;}
       .max-w-md, .max-w-lg { max-width: 95vw !important;}
-      .cuadro-memoria span.marcas-txt { font-size: 0.83rem; }
     }
     @media (max-width:480px) {
       .rounded-3xl, .modal-juego {
@@ -207,7 +192,7 @@
   <script>
     // --- CONSTANTES ---
     const TIEMPO_JUEGO = 120; // Segundos para ganar (2 minutos, modificar aquí)
-    const PREVIEW_TIME = 30; // Segundos de previsualización de imágenes al iniciar
+    const PREVIEW_TIME = 10; // Segundos de previsualización de imágenes al iniciar
     const CODIGO_PREMIO = "STT1011";
     const FELICITACION = "Haz completado el segundo nivel, eres un héroe vial";
 
@@ -221,66 +206,66 @@
       "https://res.cloudinary.com/dqqeavica/image/upload/v1756828159/avatar_6_gdxczb.png"
     ];
 
-    // Marcas viales: imagen + texto + tarea
+    // Marcas viales: imagen + nombre + tarea
     const PAREJAS = [
       {
         id: 1,
         img: "https://res.cloudinary.com/dqqeavica/image/upload/v1757341350/sencilla_continua_fpzfow.jpg",
-        text: "Sencilla y continua. No se puede adelantar.",
+        name: "Sencilla y continua. No se puede adelantar.",
         tarea: "Ve con tus padres y señala una línea amarilla sencilla y continua, explícale por qué no se puede adelantar.",
       },
       {
         id: 2,
         img: "https://res.cloudinary.com/dqqeavica/image/upload/v1757341351/doble_continua_mqo3g3.jpg",
-        text: "Doble y continua. En ningún sentido se puede adelantar.",
+        name: "Doble y continua. En ningún sentido se puede adelantar.",
         tarea: "Pregunta a tus padres si conocen una vía con doble línea continua y comenta su importancia.",
       },
       {
         id: 3,
         img: "https://res.cloudinary.com/dqqeavica/image/upload/v1757341351/doble_trazos_qbrfvs.jpg",
-        text: "Doble y a trazos. En ambos sentidos se puede adelantar.",
+        name: "Doble y a trazos. En ambos sentidos se puede adelantar.",
         tarea: "Dibuja una doble línea a trazos y explica a tu familia cómo funciona.",
       },
       {
         id: 4,
         img: "https://res.cloudinary.com/dqqeavica/image/upload/v1757341351/sencilla_trazos_glysna.jpg",
-        text: "Sencilla y a trazos. Se puede adelantar.",
+        name: "Sencilla y a trazos. Se puede adelantar.",
         tarea: "Observa una línea sencilla a trazos y di por qué permite adelantar.",
       },
       {
         id: 5,
         img: "https://res.cloudinary.com/dqqeavica/image/upload/v1757341351/doble_combinada_lk9e5f.jpg",
-        text: "Doble y combinada. Adelanta quien va al lado de las líneas de trazos.",
+        name: "Doble y combinada. Adelanta quien va al lado de las líneas de trazos.",
         tarea: "Busca una doble línea combinada y explica a tus padres quién puede adelantar.",
       },
       {
         id: 6,
         img: "https://res.cloudinary.com/dqqeavica/image/upload/v1757341351/borde_pbtxx9.jpg",
-        text: "De borde. Separa la calzada de la berma.",
+        name: "De borde. Separa la calzada de la berma.",
         tarea: "Identifica una línea de borde y explica su función.",
       },
       {
         id: 7,
         img: "https://res.cloudinary.com/dqqeavica/image/upload/v1757341350/carril_l8zhxc.jpg",
-        text: "De carril. Separa cada fila de vehículos.",
+        name: "De carril. Separa cada fila de vehículos.",
         tarea: "Dibuja líneas de carril y comenta su utilidad.",
       },
       {
         id: 8,
         img: "https://res.cloudinary.com/dqqeavica/image/upload/v1757341350/flechas_s0xxki.jpg",
-        text: "Flechas. Muestran la dirección que se debe seguir.",
+        name: "Flechas. Muestran la dirección que se debe seguir.",
         tarea: "Observa las flechas en la vía y di por qué son importantes.",
       },
       {
         id: 9,
         img: "https://res.cloudinary.com/dqqeavica/image/upload/v1757341350/paso_nivel_avi0jk.jpg",
-        text: "Paso a nivel. Indica el cruce con el ferrocarril.",
+        name: "Paso a nivel. Indica el cruce con el ferrocarril.",
         tarea: "Explica a tus padres qué significa paso a nivel y por qué se debe tener cuidado.",
       },
       {
         id: 10,
         img: "https://res.cloudinary.com/dqqeavica/image/upload/v1757341350/peatonal_brlu0j.jpg",
-        text: "Cebra o zona peatonal. Define el cruce de peatones, línea de pare.",
+        name: "Cebra o zona peatonal. Define el cruce de peatones, línea de pare.",
         tarea: "Cruza una cebra peatonal con tu familia y explica su importancia.",
       }
     ];
@@ -401,10 +386,12 @@
       state.winTimestamp = null;
       state.previewTimeLeft = PREVIEW_TIME;
       state.previsualizando = true;
+
+      // Crear el grid de 20 cuadros: cada pareja son dos imágenes distintas pero con el mismo id
       let grid = [];
       PAREJAS.forEach((p,idx)=>{
-        grid.push({ tipo:"img", id:p.id, contenido:p.img, encontrado:false });
-        grid.push({ tipo:"txt", id:p.id, contenido:p.text, encontrado:false });
+        grid.push({ tipo:"img", id:p.id, contenido:p.img });
+        grid.push({ tipo:"img", id:p.id, contenido:p.img });
       });
       state.grid = shuffle(grid);
       state.startTimestamp = null;
@@ -478,30 +465,24 @@
           <div class="w-full mb-3">
             <div class="memoria-grid" id="memoria-grid">
               ${state.grid.map((cuadro,idx)=>{
-  let isSel = state.seleccionadas.includes(idx);
-  let isEncontrado = state.parejasEncontradas.includes(cuadro.id);
-  // PREVISUALIZANDO: mostrar todas las cartas abiertas, sin poder seleccionar
-  if(state.previsualizando) {
-    return `<div class="cuadro-memoria" style="pointer-events:none">
-      ${
-        cuadro.tipo==="img"
-        ? `<img src="${cuadro.contenido}" class="marcas-img" alt="marca vial">`
-        : `<span class="marcas-txt">${cuadro.contenido}</span>`
-      }
-    </div>`;
-  }
-  // JUEGO NORMAL
-  return `
-    <div class="cuadro-memoria ${isEncontrado?'encontrado':''} ${isSel?'seleccionado':''}" onclick="descubrirCuadro(${idx})" tabindex="0">
-      ${
-        isEncontrado || isSel
-        ? (cuadro.tipo==="img"
-            ? `<img src="${cuadro.contenido}" class="marcas-img" alt="marca vial">`
-            : `<span class="marcas-txt">${cuadro.contenido}</span>`)
-        : `<img src="https://res.cloudinary.com/dqqeavica/image/upload/v1756743104/secretaria_de_Transito_nxsvyp.jpg" class="marcas-img" alt="respaldo">`
-      }
-    </div>`;
-}).join("")}
+                let isSel = state.seleccionadas.includes(idx);
+                let isEncontrado = state.parejasEncontradas.includes(cuadro.id);
+                // PREVISUALIZANDO: mostrar todas las cartas abiertas, sin poder seleccionar
+                if(state.previsualizando) {
+                  return `<div class="cuadro-memoria" style="pointer-events:none">
+                    <img src="${cuadro.contenido}" class="marcas-img" alt="marca vial">
+                  </div>`;
+                }
+                // JUEGO NORMAL
+                return `
+                  <div class="cuadro-memoria ${isEncontrado?'encontrado':''} ${isSel?'seleccionado':''}" onclick="descubrirCuadro(${idx})" tabindex="0">
+                    ${
+                      isEncontrado || isSel
+                      ? `<img src="${cuadro.contenido}" class="marcas-img" alt="marca vial">`
+                      : `<img src="https://res.cloudinary.com/dqqeavica/image/upload/v1756743104/secretaria_de_Transito_nxsvyp.jpg" class="marcas-img" alt="respaldo">`
+                    }
+                  </div>`;
+              }).join("")}
             </div>
           </div>
           <div class="flex justify-between w-full mt-2 mb-1 items-center">
@@ -541,24 +522,36 @@
       if (i1 === undefined || i2 === undefined) return;
       const c1 = state.grid[i1], c2 = state.grid[i2];
       state.intentos++;
-      if(c1.id === c2.id && c1.tipo !== c2.tipo) {
+      if(c1.id === c2.id && i1 !== i2) {
         // Es pareja!!
         state.parejasEncontradas.push(c1.id);
         playSound("audio-bien");
+        // SweetAlert: Muy bien, imagen y nombre
+        let info = PAREJAS.find(p=>p.id===c1.id);
+        setTimeout(()=>{
+          Swal.fire({
+  title: '¡Muy bien!',
+  html: `<img src="${info.img}" style="max-width:120px;margin-bottom:10px;border-radius:1em;display:block;margin:auto;"><br><b>${info.name}</b>`,
+  icon: 'success',
+  confirmButtonText: 'Continuar',
+  customClass: {popup: 'rounded-2xl'}
+});
+        }, 600);
         // Anotar tarea si no está repetida
-        const tareaIdx = PAREJAS.findIndex(p=>p.id===c1.id);
-        if (tareaIdx >= 0 && !state.tareasPendientes.includes(PAREJAS[tareaIdx].tarea)) {
-          state.tareasPendientes.push(PAREJAS[tareaIdx].tarea);
+        if (info && !state.tareasPendientes.includes(info.tarea)) {
+          state.tareasPendientes.push(info.tarea);
         }
         // ¿Ganó?
         if(state.parejasEncontradas.length===10) {
           state.winTimestamp = Date.now();
           clearInterval(state.timer);
-          setTimeout(()=>{ playSound("audio-fin"); renderFin(); }, 800);
-          setTimeout(lanzarConfetti, 1200);
+          setTimeout(()=>{ playSound("audio-fin"); renderFin(); }, 1200);
+          setTimeout(lanzarConfetti, 1400);
         } else {
-          state.seleccionadas = [];
-          renderMemoria();
+          setTimeout(() => {
+            state.seleccionadas = [];
+            renderMemoria();
+          }, 1200);
         }
       } else {
         // No es pareja
