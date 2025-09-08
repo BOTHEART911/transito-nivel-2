@@ -518,49 +518,59 @@
     }
 
     function checkPareja() {
-  const [i1, i2] = state.seleccionadas;
-  if (i1 === undefined || i2 === undefined) return;
-  const c1 = state.grid[i1], c2 = state.grid[i2];
-  state.intentos++;
-  if(c1.id === c2.id && i1 !== i2) {
-    // Es pareja!!
-    state.parejasEncontradas.push(c1.id);
-    playSound("audio-bien");
-    let info = PAREJAS.find(p=>p.id===c1.id);
-    clearInterval(state.timer); // Pausar timer
-    setTimeout(()=>{
-      Swal.fire({
-        title: '¡Muy bien!',
-        html: `<img src="${info.img}" style="max-width:120px;margin-bottom:10px;border-radius:1em;display:block;margin:auto;"><br><b>${info.name}</b>`,
-        icon: 'success',
-        confirmButtonText: 'Continuar',
-        customClass: {popup: 'rounded-2xl'}
-      }).then(() => {
-        // Reanudar timer solo si el juego sigue en curso
-        if(state.parejasEncontradas.length < 10 && !state.salir) {
-          startTimer();
+    const [i1, i2] = state.seleccionadas;
+    if (i1 === undefined || i2 === undefined) return;
+    const c1 = state.grid[i1], c2 = state.grid[i2];
+    state.intentos++;
+    if(c1.id === c2.id && i1 !== i2) {
+      state.parejasEncontradas.push(c1.id);
+      playSound("audio-bien");
+      let info = PAREJAS.find(p=>p.id===c1.id);
+      clearInterval(state.timer); // Pausar timer
+
+      // Si es la última pareja...
+      if(state.parejasEncontradas.length === 10) {
+        state.winTimestamp = Date.now();
+        setTimeout(() => {
+          Swal.fire({
+            title: '¡Muy bien!',
+            html: `<img src="${info.img}" style="max-width:120px;margin-bottom:10px;border-radius:1em;display:block;margin:auto;"><br><b>${info.name}</b>`,
+            icon: 'success',
+            confirmButtonText: 'Terminar',
+            customClass: {popup: 'rounded-2xl'}
+          }).then(() => {
+            playSound("audio-fin");
+            renderFin();
+            lanzarConfetti();
+          });
+        }, 600);
+        // No hace falta reanudar timer y no llama renderMemoria
+      } else {
+        setTimeout(()=>{
+          Swal.fire({
+            title: '¡Muy bien!',
+            html: `<img src="${info.img}" style="max-width:120px;margin-bottom:10px;border-radius:1em;display:block;margin:auto;"><br><b>${info.name}</b>`,
+            icon: 'success',
+            confirmButtonText: 'Continuar',
+            customClass: {popup: 'rounded-2xl'}
+          }).then(() => {
+            if(!state.salir) startTimer();
+            state.seleccionadas = [];
+            renderMemoria();
+          });
+        }, 600);
+        if (info && !state.tareasPendientes.includes(info.tarea)) {
+          state.tareasPendientes.push(info.tarea);
         }
+      }
+    } else {
+      playSound("audio-mal");
+      setTimeout(()=>{
         state.seleccionadas = [];
         renderMemoria();
-      });
-    }, 600);
-    if (info && !state.tareasPendientes.includes(info.tarea)) {
-      state.tareasPendientes.push(info.tarea);
+      }, 800);
     }
-    if(state.parejasEncontradas.length===10) {
-      state.winTimestamp = Date.now();
-      // No reanudar timer, solo terminar
-      setTimeout(()=>{ playSound("audio-fin"); renderFin(); }, 1200);
-      setTimeout(lanzarConfetti, 1400);
-    }
-  } else {
-    playSound("audio-mal");
-    setTimeout(()=>{
-      state.seleccionadas = [];
-      renderMemoria();
-    }, 800);
   }
-}
 
     function salirAJugar() {
       state.salir = true;
