@@ -191,8 +191,8 @@
 
   <script>
     // --- CONSTANTES ---
-    const TIEMPO_JUEGO = 120; // Segundos para ganar (2 minutos, modificar aquí)
-    const PREVIEW_TIME = 15; // Segundos de previsualización de imágenes al iniciar
+    const TIEMPO_JUEGO = 150; // Segundos para ganar (2 minutos y medio, modificar aquí)
+    const PREVIEW_TIME = 30; // Segundos de previsualización de imágenes al iniciar
     const CODIGO_PREMIO = "STT1011";
     const FELICITACION = "Haz completado el segundo nivel, eres un héroe vial";
 
@@ -458,7 +458,7 @@
               ${
                 state.previsualizando
                 ? 'Memoriza las imágenes de las marcas viales.<br>El juego comenzará en <span id="preview-timer">'+state.previewTimeLeft+'</span> segundos.'
-                : 'Haz clic en los cuadros para descubrir las parejas.<br>¡Encuentra las 10 parejas en menos de <b>2 minutos</b>!'
+                : 'Haz clic en los cuadros para descubrir las parejas.<br>¡Encuentra las 10 parejas en menos de <b>2 minutos y 30 segundos</b>!'
               }
             </div>
           </div>
