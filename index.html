@@ -171,9 +171,7 @@
       }
     }
     @media (max-width:400px) {
-      .memoria-grid {
-        gap: 0.6em;
-      }
+      .memoria-grid { gap: 0.6em; }
     }
   </style>
 </head>
@@ -191,8 +189,8 @@
 
   <script>
     // --- CONSTANTES ---
-    const TIEMPO_JUEGO = 150; // Segundos para ganar (2 minutos y medio, modificar aquí)
-    const PREVIEW_TIME = 45; // Segundos de previsualización de imágenes al iniciar
+    const TIEMPO_JUEGO = 120; // Segundos para ganar (2 minutos)
+    const PREVIEW_TIME = 30; // Segundos de previsualización de imágenes al iniciar
     const CODIGO_PREMIO = "STT1011";
     const FELICITACION = "Haz completado el segundo nivel";
 
@@ -205,6 +203,12 @@
       "https://res.cloudinary.com/dqqeavica/image/upload/v1756828159/avatar_5_yx0wam.png",
       "https://res.cloudinary.com/dqqeavica/image/upload/v1756828159/avatar_6_gdxczb.png"
     ];
+
+    // Precarga desde parámetros de la URL si vienen desde el Nivel 1
+    const _params = new URLSearchParams(window.location.search);
+    const _paramNombre = (_params.get('nombre') || '').trim();
+    const _paramAvatarRaw = parseInt(_params.get('avatar'), 10);
+    const _paramAvatar = Number.isFinite(_paramAvatarRaw) && _paramAvatarRaw >= 0 && _paramAvatarRaw < AVATARS.length ? _paramAvatarRaw : 0;
 
     // Marcas viales: imagen + nombre + tarea
     const PAREJAS = [
@@ -273,8 +277,8 @@
     // --- ESTADO DEL JUEGO ---
     let state = {
       screen: "inicio",
-      playerName: "",
-      avatarIndex: 0,
+      playerName: _paramNombre,         // si llegó desde Nivel 1, precargado; si no, queda vacío
+      avatarIndex: _paramAvatar,        // si no llega, queda 0 por defecto
       sonido: true,
       salir: false,
       timer: null,
@@ -310,6 +314,14 @@
       const audio = document.getElementById(id);
       if (audio) { audio.pause(); audio.currentTime=0; }
     }
+    function playTicTac() {
+      stopSound("audio-tictac"); // asegurar no superponer
+      playSound("audio-tictac");
+    }
+    function stopTicTac() {
+      stopSound("audio-tictac");
+    }
+
     function lanzarConfetti() {
       const colors = ["#fde047","#fbbf24","#10b981","#38bdf8","#f472b6","#6366f1","#f43f5e"];
       const confettiContainer = document.getElementById('confetti');
@@ -329,20 +341,20 @@
       playSound("audio-fiesta");
     }
 
-    // --- renderInicio EXACTAMENTE IGUAL ---
+    // --- INICIO ---
     function renderInicio() {
-      stopSound("audio-tictac");
+      stopTicTac();
       clearInterval(state.timer);
       state.timer = null;
       state.salir = false;
       appHtml(`
         <div class="bg-white rounded-3xl shadow-2xl p-8 flex flex-col items-center animate-fadeIn">
-          <img src="https://res.cloudinary.com/dqqeavica/image/upload/v1756743104/secretaria_de_Transito_nxsvyp.jpg" alt="Secretaría de Tránsito" class="tránsito-entity-img mb-3" style="margin-bottom: 0.7em;">
+          <img src="https://res.cloudinary.com/dqqeavica/image/upload/v1756743104/secretaria_de_Transito_nxsvyp.jpg" alt="Secretaría de Tránsito" class="tránsito-entity-img mb-3" style="margin-bottom: 1rem;">
           <h1 class="text-4xl font-bold mb-3 text-yellow-600 text-center">Reconoce las Marcas Viales y las señales preventivas</h1>
-          <div class="mb-4 text-lg text-gray-700 text-center"><b>Segundo Nivel</b><br>Descubre las parejas para convertirte en <br><span class="font-semibold text-blue-500">Guardián Digital de la Seguridad Vial</span>.<br></div>
+          <div class="mb-4 text-lg text-gray-700 text-center"><b>Segundo Nivel</b><br>Descubre las parejas para convertirte en <br><span class="font-semibold text-blue-500">Guardián Digital de la Seguridad Vial</span>.</div>
           <div class="flex flex-col items-center mb-3">
             <label class="mb-1 text-gray-600 font-medium">Nombre:</label>
-            <input type="text" id="nombre" class="rounded-lg border-2 border-blue-200 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 transition w-56 mb-2 text-center" maxlength="12" placeholder="Escribe tu nombre" value="${state.playerName}">
+            <input type="text" id="nombre" class="rounded-lg border-2 border-blue-200 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 transition w-56 mb-2 text-center" maxlength="12" placeholder="Tu nombre...">
             <label class="mb-2 text-gray-600 font-medium">Elige tu avatar:</label>
             <div class="flex flex-row flex-wrap gap-3 justify-center items-center mb-2">
               ${AVATARS.map((url,i)=>`
@@ -359,22 +371,31 @@
           <div class="mt-4 text-sm text-gray-400">Copyright © Oscar Polania - Sec. Tránsito del Tolima</div>
         </div>
       `);
+      // Si viene nombre por parámetro, precargar el input
+      const _in = document.getElementById('nombre');
+      if (_in && state.playerName) _in.value = state.playerName;
       playSound("audio-inicio");
       window.setAvatar = (i)=>{state.avatarIndex=i; renderInicio();}
       window.toggleSonido = ()=>{state.sonido=!state.sonido; renderInicio();}
     }
 
-    // --- MEMORIA LOGIC ---
+    // --- LÓGICA MEMORIA ---
     function startGame() {
       let nombre = state.playerName;
       if (state.screen === "inicio") {
-        nombre = $("#nombre").value.trim();
+        const input = $("#nombre");
+        nombre = input ? input.value.trim() : nombre;
         if (nombre.length < 2) {
-          $("#nombre").classList.add('shake');
-          setTimeout(()=>$("#nombre").classList.remove('shake'), 400);
+          if (input) {
+            input.classList.add('shake');
+            setTimeout(()=>input.classList.remove('shake'), 400);
+          }
           return;
         }
       }
+      // Detener posible audio de inicio para no superponer
+      stopSound("audio-inicio");
+
       state.playerName = nombre;
       state.screen = "juego";
       state.salir = false;
@@ -387,7 +408,7 @@
       state.previewTimeLeft = PREVIEW_TIME;
       state.previsualizando = true;
 
-      // Crear el grid de 20 cuadros: cada pareja son dos imágenes distintas pero con el mismo id
+      // Crear el grid de 20 cuadros: cada pareja son dos imágenes con el mismo id
       let grid = [];
       PAREJAS.forEach((p,idx)=>{
         grid.push({ tipo:"img", id:p.id, contenido:p.img });
@@ -412,7 +433,7 @@
           startTimer();
         }
       },1000);
-      playSound("audio-tictac");
+      playTicTac();
     }
 
     function startTimer() {
@@ -426,13 +447,14 @@
         renderMemoriaUI();
         if(state.timeLeft<=0){
           clearInterval(state.timer);
+          stopTicTac(); // no superponer con sonido final
           if (!state.winTimestamp && !state.salir) {
             playSound("audio-fin");
             setTimeout(renderFin, 700);
           }
         }
       },1000);
-      playSound("audio-tictac");
+      playTicTac();
     }
 
     function renderMemoriaUI() {
@@ -458,7 +480,7 @@
               ${
                 state.previsualizando
                 ? 'Memoriza las imágenes de las marcas viales.<br>El juego comenzará en <span id="preview-timer">'+state.previewTimeLeft+'</span> segundos.'
-                : 'Haz clic en los cuadros para descubrir las parejas.<br>¡Encuentra las 10 parejas en menos de <b>2 minutos y 30 segundos</b>!'
+                : 'Haz clic en los cuadros para descubrir las parejas.<br>¡Encuentra las 10 parejas en menos de <b>2 minutos</b>!'
               }
             </div>
           </div>
@@ -501,6 +523,7 @@
       `);
       window.descubrirCuadro = descubrirCuadro;
       window.salirAJugar = salirAJugar;
+      window.setAvatar = (i)=>{ state.avatarIndex=i; renderMemoria(); };
     }
 
     function descubrirCuadro(idx) {
@@ -518,59 +541,62 @@
     }
 
     function checkPareja() {
-    const [i1, i2] = state.seleccionadas;
-    if (i1 === undefined || i2 === undefined) return;
-    const c1 = state.grid[i1], c2 = state.grid[i2];
-    state.intentos++;
-    if(c1.id === c2.id && i1 !== i2) {
-      state.parejasEncontradas.push(c1.id);
-      playSound("audio-bien");
-      let info = PAREJAS.find(p=>p.id===c1.id);
-      clearInterval(state.timer); // Pausar timer
+      const [i1, i2] = state.seleccionadas;
+      if (i1 === undefined || i2 === undefined) return;
+      const c1 = state.grid[i1], c2 = state.grid[i2];
+      state.intentos++;
+      if(c1.id === c2.id && i1 !== i2) {
+        state.parejasEncontradas.push(c1.id);
+        playSound("audio-bien");
 
-      // Si es la última pareja...
-      if(state.parejasEncontradas.length === 10) {
-        state.winTimestamp = Date.now();
-        setTimeout(() => {
-          Swal.fire({
-            title: '¡Muy bien!',
-            html: `<img src="${info.img}" style="max-width:120px;margin-bottom:10px;border-radius:1em;display:block;margin:auto;"><br><b>${info.name}</b>`,
-            icon: 'success',
-            confirmButtonText: 'Terminar',
-            customClass: {popup: 'rounded-2xl'}
-          }).then(() => {
-            playSound("audio-fin");
-            renderFin();
-            lanzarConfetti();
-          });
-        }, 600);
-        // No hace falta reanudar timer y no llama renderMemoria
-      } else {
-        setTimeout(()=>{
-          Swal.fire({
-            title: '¡Muy bien!',
-            html: `<img src="${info.img}" style="max-width:120px;margin-bottom:10px;border-radius:1em;display:block;margin:auto;"><br><b>${info.name}</b>`,
-            icon: 'success',
-            confirmButtonText: 'Continuar',
-            customClass: {popup: 'rounded-2xl'}
-          }).then(() => {
-            if(!state.salir) startTimer();
-            state.seleccionadas = [];
-            renderMemoria();
-          });
-        }, 600);
-        if (info && !state.tareasPendientes.includes(info.tarea)) {
-          state.tareasPendientes.push(info.tarea);
+        // Pausar cronómetro y tic-tac durante la alerta
+        clearInterval(state.timer);
+        stopTicTac();
+
+        let info = PAREJAS.find(p=>p.id===c1.id);
+
+        // Si es la última pareja...
+        if(state.parejasEncontradas.length === 10) {
+          state.winTimestamp = Date.now();
+          setTimeout(() => {
+            Swal.fire({
+              title: '¡Muy bien!',
+              html: `<img src="${info.img}" style="max-width:120px;margin-bottom:10px;border-radius:1em;display:block;margin:auto;"><br><b>${info.name}</b>`,
+              icon: 'success',
+              confirmButtonText: 'Terminar',
+              customClass: {popup: 'rounded-2xl'}
+            }).then(() => {
+              // No reproducimos "fin" aquí para no superponer con "fiesta" del confetti
+              renderFin(); // se encargará de confetti y sonido de fiesta si corresponde
+            });
+          }, 600);
+          // No reanudamos timer porque el juego terminó
+        } else {
+          setTimeout(()=>{
+            Swal.fire({
+              title: '¡Muy bien!',
+              html: `<img src="${info.img}" style="max-width:120px;margin-bottom:10px;border-radius:1em;display:block;margin:auto;"><br><b>${info.name}</b>`,
+              icon: 'success',
+              confirmButtonText: 'Continuar',
+              customClass: {popup: 'rounded-2xl'}
+            }).then(() => {
+              if(!state.salir) startTimer(); // reanudar cronómetro y tic-tac
+              state.seleccionadas = [];
+              renderMemoria();
+            });
+          }, 600);
+          if (info && !state.tareasPendientes.includes(info.tarea)) {
+            state.tareasPendientes.push(info.tarea);
+          }
         }
+      } else {
+        playSound("audio-mal");
+        setTimeout(()=>{
+          state.seleccionadas = [];
+          renderMemoria();
+        }, 800);
       }
-    } else {
-      playSound("audio-mal");
-      setTimeout(()=>{
-        state.seleccionadas = [];
-        renderMemoria();
-      }, 800);
     }
-  }
 
     function salirAJugar() {
       state.salir = true;
@@ -579,22 +605,29 @@
 
     // --- FIN DEL JUEGO ---
     function renderFin() {
-      stopSound("audio-tictac");
+      stopTicTac();
       clearInterval(state.timer);
       state.screen = "fin";
       // ¿Ganó dentro del tiempo?
       const tiempoUsado = state.winTimestamp ? Math.round((state.winTimestamp-state.startTimestamp)/1000) : TIEMPO_JUEGO;
       const aprobado = state.parejasEncontradas.length===10 && tiempoUsado <= TIEMPO_JUEGO;
+
+      // Si aprobó, lanzamos confetti (esto reproduce "audio-fiesta"). Si no, el sonido "fin" ya sonó al agotarse el tiempo.
       if(aprobado) setTimeout(lanzarConfetti, 100);
+
+      // Construir URL a Nivel 3 con nombre y avatar
+      const nivel3Base = "https://botheart911.github.io/transito-nivel-3/";
+      const nivel3Url = `${nivel3Base}?nombre=${encodeURIComponent(state.playerName)}&avatar=${state.avatarIndex}`;
+
       appHtml(`
         <div class="bg-white rounded-3xl shadow-2xl p-8 flex flex-col items-center animate-fadeIn relative">
-          <img src="https://res.cloudinary.com/dqqeavica/image/upload/v1756743104/secretaria_de_Transito_nxsvyp.jpg" alt="Secretaría de Tránsito" class="tránsito-entity-img mb-3" style="margin-bottom: 0.7em;">
+          <img src="https://res.cloudinary.com/dqqeavica/image/upload/v1756743104/secretaria_de_Transito_nxsvyp.jpg" alt="Secretaría de Tránsito" class="tránsito-entity-img mb-3" style="margin-bottom: 1rem;">
           <img src="${AVATARS[state.avatarIndex]}" class="avatar-img" alt="Avatar" style="margin-bottom:0.5em">
           <h2 class="text-3xl font-bold text-yellow-700 mb-2">${aprobado?FELICITACION:"¡Inténtalo de nuevo!"}</h2>
           <div class="text-lg font-medium text-blue-600 mb-2">Terminaste el nivel de marcas viales.</div>
-          <div class="mb-2 text-xl font-bold text-yellow-500">Tiempo: <span class="text-blue-900">${tiempoUsado}s</span> / 120s</div>
+          <div class="mb-2 text-xl font-bold text-yellow-500">Tiempo: <span class="text-blue-900">${tiempoUsado}s</span> / ${TIEMPO_JUEGO}s</div>
           <div class="mb-2 text-xl font-bold text-green-600">Parejas encontradas: ${state.parejasEncontradas.length} / 10</div>
-          ${ 
+          ${
             aprobado 
             ? `<div class="aprobado-txt">¡Haz superado este reto! 🎉</div>
                 <div class="codigo-premio">Tu código de ganador: <span>${CODIGO_PREMIO}</span></div>
@@ -605,6 +638,10 @@
           }
           <div class="mb-4">
             <button onclick="verTareas()" class="game-btn bg-green-400 hover:bg-green-500 text-white px-6 py-2 rounded-lg font-bold mt-1">Ver tareas para casa</button>
+            <!-- Ir a Nivel 3 con nombre y avatar -->
+            <div class="mt-2">
+              <a href="${nivel3Url}" class="game-btn px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-bold">Ir a Nivel 3</a>
+            </div>
           </div>
           <div class="mt-2 flex flex-col gap-2">
             <button onclick="renderInicio()" class="game-btn px-4 py-2 bg-blue-200 hover:bg-blue-400 text-blue-900 rounded-lg font-bold">Volver al inicio</button>
@@ -626,7 +663,7 @@
     function verTareas() {
       appHtml(`
         <div class="bg-white rounded-3xl shadow-2xl p-8 flex flex-col items-center animate-fadeIn">
-          <img src="https://res.cloudinary.com/dqqeavica/image/upload/v1756743104/secretaria_de_Transito_nxsvyp.jpg" alt="Secretaría de Tránsito" class="tránsito-entity-img mb-3" style="margin-bottom: 0.7em;">
+          <img src="https://res.cloudinary.com/dqqeavica/image/upload/v1756743104/secretaria_de_Transito_nxsvyp.jpg" alt="Secretaría de Tránsito" class="tránsito-entity-img mb-3" style="margin-bottom: 1rem;">
           <img src="${AVATARS[state.avatarIndex]}" class="avatar-img" alt="Avatar" style="margin-bottom:0.5em">
           <h2 class="text-2xl font-bold text-green-700 mb-3">Tareas para hacer en casa</h2>
           <ul class="mb-4 w-full max-w-lg text-base list-disc list-inside text-gray-700">
